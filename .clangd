@@ -1,0 +1,26 @@
+# Local dev setup for clangd. Regenerate the reasoning, don't copy blindly:
+#   1. `pio run`                       -> writes .pio/build/<env>/compile_commands.json
+#   2. clangd --check=src/main.c \
+#        --query-driver='$HOME/.platformio/packages/**/bin/*-elf-gcc'
+#      -> lists the flags this clangd rejects
+#   3. put exactly those flags below
+#
+# Run the check with the same --query-driver that languages.toml passes.
+# Without it clangd cannot resolve the relative '../hal.h' inside
+# xtensa/config/core.h and reports a spurious pp_file_not_found.
+
+CompileFlags:
+  # clangd only searches the file's dir and its parents; the CDB lives in the
+  # build tree, so point at it explicitly. <env> must match platformio.ini.
+  CompilationDatabase: .pio/build/esp32s3
+
+  # xtensa-gcc flags Apple clangd does not know. Each one was reported by
+  # `clangd --check` as "unknown argument"; nothing here is speculative.
+  Remove:
+    - -mlongcalls
+    - -mdisable-hardware-atomics
+    - -fstrict-volatile-bitfields
+    - -fno-tree-switch-conversion
+    - -fno-shrink-wrap
+    - -fno-malloc-dce
+    - -fzero-init-padding-bits=*
