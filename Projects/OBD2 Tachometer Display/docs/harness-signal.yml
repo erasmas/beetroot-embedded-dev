@@ -1,0 +1,113 @@
+metadata:
+  title: Rebel Tachometer — signal path (bike bus to controller)
+  pn: RT-HARN-SIG
+  revision: B
+  notes: >
+    2022 Honda CMX500. ISO 15765-4 CAN, 29-bit, 500 kbps.
+    Two conductors only. Listen-only — the device never transmits.
+    Mated connector pairs are drawn as a single junction.
+
+options:
+  fontname: Helvetica
+  color_mode: SHORT
+
+connectors:
+
+  X1:
+    type: Honda 6-pin DLC
+    subtype: on the bike, red, under seat
+    pins: ["?H", "?L"]
+    pinlabels: [CAN-H — pin TBD, CAN-L — pin TBD]
+    notes: >
+      STEP 0 — pin numbers not yet verified. This connector also carries K-Line
+      and switched power, so do not probe blind. The adapter cable does the
+      mapping; you never need these numbers unless the adapter turns out wrong.
+
+  X2:
+    type: OBD-II junction (J1962)
+    subtype: adapter female + splitter, mated
+    pins: [6, 14]
+    pinlabels: [CAN-H, CAN-L]
+    notes: >
+      Both splitter ports are bussed in parallel. Port A feeds the device;
+      PORT B STAYS FREE for a scanner. Verify ~60 ohm between pins 6 and 14
+      with the ignition off before going further.
+
+  X3:
+    type: Device pigtail (J1962 male)
+    subtype: solderable, PCB
+    pins: [6, 14]
+    pinlabels: [CAN-H, CAN-L]
+    notes: Only these two pads populated. Nothing on pin 16 (+12 V) or 4/5 (GND).
+
+  X4:
+    type: SN65HVD230 breakout
+    subtype: 3.3 V CAN transceiver
+    pinlabels: [CANH, CANL, 3V3, GND, D, R, RS, Vref]
+    notes: >
+      Onboard 120 ohm terminator DESOLDERED — the bus is already terminated at
+      both ends. RS tied to GND on the module for high-speed mode. Vref open.
+
+  X5:
+    type: ESP32-S3 (PSRAM)
+    subtype: TWAI controller, listen-only
+    pinlabels: [3V3, GND, TWAI-TX, TWAI-RX]
+    notes: >
+      500 kbps, 29-bit extended, accept-all filter. TX is wired but never
+      driven in listen-only mode; the peripheral requires both lines.
+
+cables:
+
+  W1:
+    type: Honda 6-pin to OBD-II adapter cable
+    wirecount: 2
+    gauge: 0.5 mm2
+    length: 0.4
+    colors: [YE, GN]
+    notes: >
+      PURCHASED ASSEMBLY. Carries all 16 OBD-II positions; only the two CAN
+      conductors are shown. Internal colours are unknown and not to be trusted.
+
+  WM:
+    type: MATED PAIR — no wire
+    wirecount: 2
+    gauge: 0.5 mm2
+    length: 0
+    colors: [YE, GN]
+    ignore_in_bom: true
+    notes: Not a cable. Port A female and your pigtail male plug straight together.
+
+  W2:
+    type: CAN stub
+    wirecount: 2
+    gauge: 0.5 mm2
+    length: 0.25
+    colors: [YE, GN]
+    notes: >
+      TWISTED PAIR, 2-3 turns per cm. Keep under 30 cm — this is a branch off a
+      terminated bus and a long stub reflects.
+
+  W3:
+    type: Logic tail
+    wirecount: 4
+    gauge: 0.34 mm2
+    length: 0.15
+    colors: [OG, BK, BU, VT]
+
+connections:
+
+  - - X1: ["?H", "?L"]
+    - W1: [1, 2]
+    - X2: [6, 14]
+
+  - - X2: [6, 14]
+    - WM: [1, 2]
+    - X3: [6, 14]
+
+  - - X3: [6, 14]
+    - W2: [1, 2]
+    - X4: [CANH, CANL]
+
+  - - X4: [3V3, GND, D, R]
+    - W3: [1-4]
+    - X5: [3V3, GND, TWAI-TX, TWAI-RX]

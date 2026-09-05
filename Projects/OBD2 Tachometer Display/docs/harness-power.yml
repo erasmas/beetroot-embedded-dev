@@ -1,0 +1,203 @@
+metadata:
+  title: Rebel Tachometer — power and peripherals
+  pn: RT-HARN-PWR
+  revision: B
+  notes: >
+    Independent of the signal path. Nothing here touches the diagnostic
+    connector. Terminal numbers follow DIN 72552 (30 = permanent battery,
+    15 = switched, 31 = ground return).
+
+options:
+  fontname: Helvetica
+  color_mode: SHORT
+
+connectors:
+
+  X1:
+    type: Battery / fuse tap
+    subtype: 12–14.5 V, terminal 30
+    pinlabels: [+12V, GND]
+
+  X2:
+    type: Inline fuse holder
+    subtype: 2 A blade
+    pinlabels: [IN, OUT]
+    notes: Mount at the battery end so it protects the whole run, not just the device.
+
+  X3:
+    type: Switched circuit
+    subtype: terminal 15 — tail light or switched fuse
+    pinlabels: [SW +12V, GND]
+    notes: STEP 5 — circuit not yet chosen. Only has to carry the relay coil, ~150 mA.
+
+  X4:
+    type: Ignition relay
+    subtype: SPST, DIN 72552
+    pins: [30, 87, 85, 86]
+    pinlabels: [30 battery in, 87 switched out, 85 coil -, 86 coil +]
+    notes: Without this the device drains the battery while parked.
+
+  X5:
+    type: Buck converter
+    subtype: 12→5 V, 2 A, automotive
+    pinlabels: [IN+, IN-, OUT+, OUT-]
+    notes: >
+      TVS diode SMBJ18A fitted directly across IN+ / IN- at the terminals.
+      Clamps 60–80 V load dump faster than any regulator can respond.
+
+  X6:
+    type: Ground distribution
+    subtype: chassis / battery negative, terminal 31
+    pinlabels: [chassis, buck, ESP32, BTN-A, BTN-B, BH1750]
+    notes: >
+      One node, one return. No ground is taken from OBD-II pins 4/5 — that
+      would put a second return in parallel with the chassis.
+
+  X7:
+    type: ESP32-S3 (PSRAM)
+    subtype: controller
+    pinlabels: [5V IN, GND, 3V3, SDA, SCL, BTN-A, BTN-B]
+    notes: >
+      Feed VIN / 5 V and let the board's own regulator make 3.3 V.
+      Keep buttons off GPIO 0, 3, 45, 46 — strapping pins.
+
+  X8:
+    type: Push button — NEXT
+    subtype: IP67 16 mm metal, normally open
+    pins: [C, "NO"]
+    pinlabels: [common, contact]
+    notes: 10k pull-up to 3V3 and 100 nF to GND at the GPIO. ~1 ms RC.
+
+  X9:
+    type: Push button — BACK
+    subtype: IP67 16 mm metal, normally open
+    pins: [C, "NO"]
+    pinlabels: [common, contact]
+    notes: 10k pull-up to 3V3 and 100 nF to GND at the GPIO. ~1 ms RC.
+
+  X10:
+    type: BH1750
+    subtype: ambient light sensor, I2C
+    pinlabels: [VCC, GND, SDA, SCL]
+
+cables:
+
+  W1:
+    type: Battery feed
+    wirecount: 1
+    gauge: 0.75 mm2
+    length: 0.3
+    colors: [RD]
+
+  W2:
+    type: Fused feed
+    wirecount: 1
+    gauge: 0.75 mm2
+    length: 0.3
+    colors: [RD]
+
+  W3:
+    type: Coil trigger
+    wirecount: 2
+    gauge: 0.5 mm2
+    length: 0.5
+    colors: [BU, BK]
+
+  W4:
+    type: Switched feed to buck
+    wirecount: 2
+    gauge: 0.75 mm2
+    length: 0.4
+    colors: [RD, BK]
+
+  W5:
+    type: Battery negative to ground point
+    wirecount: 1
+    gauge: 0.75 mm2
+    length: 0.3
+    colors: [BK]
+
+  W6:
+    type: 5 V supply
+    wirecount: 2
+    gauge: 0.75 mm2
+    length: 0.8
+    colors: [RD, BK]
+
+  W7:
+    type: Button NEXT
+    wirecount: 2
+    gauge: 0.34 mm2
+    length: 1.0
+    colors: [BN, BK]
+    notes: Handlebar run — unshielded, alongside ignition leads. RC debounce is mandatory.
+
+  W8:
+    type: Button BACK
+    wirecount: 2
+    gauge: 0.34 mm2
+    length: 1.0
+    colors: [PK, BK]
+    notes: Handlebar run — unshielded, alongside ignition leads. RC debounce is mandatory.
+
+  W9:
+    type: I2C to light sensor
+    wirecount: 4
+    gauge: 0.34 mm2
+    length: 0.2
+    colors: [RD, BK, WH, GY]
+
+connections:
+
+  # ---- 12 V chain: battery, fuse, relay, buck ----
+  - - X1: [+12V]
+    - W1: [1]
+    - X2: [IN]
+
+  - - X2: [OUT]
+    - W2: [1]
+    - X4: [30]
+
+  - - X3: [SW +12V, GND]
+    - W3: [1-2]
+    - X4: [86, 85]
+
+  - - X4: [87]
+    - W4: [1]
+    - X5: [IN+]
+
+  - - X6: [buck]
+    - W4: [2]
+    - X5: [IN-]
+
+  # ---- ground ----
+  - - X1: [GND]
+    - W5: [1]
+    - X6: [chassis]
+
+  # ---- 5 V to controller ----
+  - - X5: [OUT+, OUT-]
+    - W6: [1-2]
+    - X7: [5V IN, GND]
+
+  # ---- peripherals ----
+  - - X8: [C, "NO"]
+    - W7: [1-2]
+    - X7: [BTN-A, GND]
+
+  - - X9: [C, "NO"]
+    - W8: [1-2]
+    - X7: [BTN-B, GND]
+
+  - - X10: [VCC, GND, SDA, SCL]
+    - W9: [1-4]
+    - X7: [3V3, GND, SDA, SCL]
+
+additional_bom_items:
+  - description: TVS diode SMBJ18A
+    qty: 1
+    designators: [X5]
+  - description: Resistor 10k 0.25 W — button pull-up
+    qty: 2
+  - description: Capacitor 100 nF ceramic — button RC debounce
+    qty: 2

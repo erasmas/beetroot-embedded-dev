@@ -1,0 +1,23 @@
+Id	Description	Qty	Unit	Designators
+1	Cable, 5 V supply, 2 x 0.75 mm²	0.8	m	W6
+2	Cable, Battery feed, 1 x 0.75 mm²	0.3	m	W1
+3	Cable, Battery negative to ground point, 1 x 0.75 mm²	0.3	m	W5
+4	Cable, Button BACK, 2 x 0.34 mm²	1	m	W8
+5	Cable, Button NEXT, 2 x 0.34 mm²	1	m	W7
+6	Cable, Coil trigger, 2 x 0.5 mm²	0.5	m	W3
+7	Cable, Fused feed, 1 x 0.75 mm²	0.3	m	W2
+8	Cable, I2C to light sensor, 4 x 0.34 mm²	0.2	m	W9
+9	Cable, Switched feed to buck, 2 x 0.75 mm²	0.4	m	W4
+10	Capacitor 100 nF ceramic — button RC debounce	2		
+11	Connector, BH1750, ambient light sensor, I2C, 4 pins	1		X10
+12	Connector, Battery / fuse tap, 12–14.5 V, terminal 30, 2 pins	1		X1
+13	Connector, Buck converter, 12→5 V, 2 A, automotive, 4 pins	1		X5
+14	Connector, ESP32-S3 (PSRAM), controller, 7 pins	1		X7
+15	Connector, Ground distribution, chassis / battery negative, terminal 31, 6 pins	1		X6
+16	Connector, Ignition relay, SPST, DIN 72552, 4 pins	1		X4
+17	Connector, Inline fuse holder, 2 A blade, 2 pins	1		X2
+18	Connector, Push button — BACK, IP67 16 mm metal, normally open, 2 pins	1		X9
+19	Connector, Push button — NEXT, IP67 16 mm metal, normally open, 2 pins	1		X8
+20	Connector, Switched circuit, terminal 15 — tail light or switched fuse, 2 pins	1		X3
+21	Resistor 10k 0.25 W — button pull-up	2		
+22	TVS diode SMBJ18A	1		X5
