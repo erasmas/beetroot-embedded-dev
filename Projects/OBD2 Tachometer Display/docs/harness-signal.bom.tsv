@@ -1,9 +1,0 @@
-Id	Description	Qty	Unit	Designators
-1	Cable, CAN stub, 2 x 0.5 mm²	0.25	m	W2
-2	Cable, Honda 6-pin to OBD-II adapter cable, 2 x 0.5 mm²	0.4	m	W1
-3	Cable, Logic tail, 4 x 0.34 mm²	0.15	m	W3
-4	Connector, Device pigtail (J1962 male), solderable, PCB, 2 pins	1		X3
-5	Connector, ESP32-S3 (PSRAM), TWAI controller, listen-only, 4 pins	1		X5
-6	Connector, Honda 6-pin DLC, on the bike, red, under seat, 2 pins	1		X1
-7	Connector, OBD-II junction (J1962), adapter female + splitter, mated, 2 pins	1		X2
-8	Connector, SN65HVD230 breakout, 3.3 V CAN transceiver, 8 pins	1		X4
