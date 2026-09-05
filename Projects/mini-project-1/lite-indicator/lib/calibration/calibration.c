@@ -28,8 +28,8 @@ static const char *TAG = "calibration";
 #define CAPTURE_SETTLE_MS 200
 
 #define NVS_NAMESPACE "twilight"
-#define NVS_KEY_DARK "dark"
-#define NVS_KEY_LIGHT "light"
+#define NVS_KEY_DARK "dark_raw"
+#define NVS_KEY_LIGHT "light_raw"
 
 typedef enum {
   BUTTON_SHORT_PRESS,
@@ -48,6 +48,15 @@ static calibration_state_t state = STATE_NORMAL;
 static int threshold_dark = DEFAULT_THRESHOLD_DARK;
 static int threshold_light = DEFAULT_THRESHOLD_LIGHT;
 static int captured_dark;
+
+// The captured values are the extremes the sensor reaches, so switching at
+// them would need light beyond anything the user demonstrated. Put the trip
+// points inside the span instead.
+static void derive_thresholds(int dark_raw, int light_raw) {
+  int span = light_raw - dark_raw;
+  threshold_dark = dark_raw + span / 3;
+  threshold_light = dark_raw + (2 * span) / 3;
+}
 
 static const char *name_of(calibration_state_t value) {
   switch (value) {
@@ -77,10 +86,11 @@ static void thresholds_load(void) {
   if (nvs_open(NVS_NAMESPACE, NVS_READONLY, &nvs) == ESP_OK) {
     if (nvs_get_i32(nvs, NVS_KEY_DARK, &dark) == ESP_OK &&
         nvs_get_i32(nvs, NVS_KEY_LIGHT, &light) == ESP_OK) {
-      threshold_dark = dark;
-      threshold_light = light;
-      ESP_LOGW(TAG, "loaded thresholds from NVS: dark=%d light=%d",
-               threshold_dark, threshold_light);
+      derive_thresholds(dark, light);
+      ESP_LOGW(TAG,
+               "loaded from NVS: captured dark=%d light=%d -> thresholds "
+               "dark=%d light=%d",
+               (int)dark, (int)light, threshold_dark, threshold_light);
       nvs_close(nvs);
       return;
     }
@@ -91,7 +101,7 @@ static void thresholds_load(void) {
            threshold_dark, threshold_light);
 }
 
-static bool thresholds_save(void) {
+static bool thresholds_save(int dark_raw, int light_raw) {
   nvs_handle_t nvs;
   esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &nvs);
   if (err != ESP_OK) {
@@ -99,9 +109,9 @@ static bool thresholds_save(void) {
     return false;
   }
 
-  err = nvs_set_i32(nvs, NVS_KEY_DARK, threshold_dark);
+  err = nvs_set_i32(nvs, NVS_KEY_DARK, dark_raw);
   if (err == ESP_OK) {
-    err = nvs_set_i32(nvs, NVS_KEY_LIGHT, threshold_light);
+    err = nvs_set_i32(nvs, NVS_KEY_LIGHT, light_raw);
   }
   if (err == ESP_OK) {
     err = nvs_commit(nvs);
@@ -221,10 +231,12 @@ static void handle_short_press(void) {
                threshold_light);
       blink(5);
     } else {
-      threshold_dark = captured_dark;
-      threshold_light = captured_light;
-      if (thresholds_save()) {
-        ESP_LOGW(TAG, "saved dark=%d light=%d", threshold_dark,
+      derive_thresholds(captured_dark, captured_light);
+      if (thresholds_save(captured_dark, captured_light)) {
+        ESP_LOGW(TAG,
+                 "saved captured dark=%d light=%d -> thresholds dark=%d "
+                 "light=%d",
+                 captured_dark, captured_light, threshold_dark,
                  threshold_light);
       }
       blink(3);
