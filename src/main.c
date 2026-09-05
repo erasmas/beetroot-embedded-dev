@@ -1,46 +1,56 @@
+#include "calibration.h"
 #include "driver/gpio.h"
-#include "esp_adc/adc_oneshot.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "light_sensor.h"
 
 static const char *TAG = "twilight";
 
+#define KEY_GPIO GPIO_NUM_5
+#define SAMPLE_PERIOD_MS 500
+
+static void key_set(bool on) { gpio_set_level(KEY_GPIO, on); }
+
+static void key_init(void) {
+  gpio_reset_pin(KEY_GPIO);
+  gpio_set_direction(KEY_GPIO, GPIO_MODE_OUTPUT);
+  key_set(false);
+}
+
 void app_main(void) {
-    // keep transistor key off, so the relay doesn't chatter while measuring
-    gpio_reset_pin(GPIO_NUM_5);
-    gpio_set_direction(GPIO_NUM_5, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_5, 0);
+  key_init();
+  light_sensor_init();
+  calibration_init(key_set);
 
-    adc_oneshot_unit_handle_t adc;
-    adc_oneshot_unit_init_cfg_t unit_cfg = {
-        .unit_id = ADC_UNIT_1,
-    };
-    ESP_ERROR_CHECK(adc_oneshot_new_unit(&unit_cfg, &adc));
+  bool relay_on = false;
+  bool was_on = false;
 
-    adc_oneshot_chan_cfg_t chan_cfg = {
-        .atten = ADC_ATTEN_DB_12,
-        .bitwidth = ADC_BITWIDTH_DEFAULT,
-    };
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, ADC_CHANNEL_3, &chan_cfg));
-
-    adc_cali_handle_t cali;
-    adc_cali_curve_fitting_config_t cali_cfg = {
-        .unit_id = ADC_UNIT_1,
-        .chan = ADC_CHANNEL_3,
-        .atten = ADC_ATTEN_DB_12,
-        .bitwidth = ADC_BITWIDTH_DEFAULT,
-    };
-    ESP_ERROR_CHECK(adc_cali_create_scheme_curve_fitting(&cali_cfg, &cali));
-
-    while(1) {
-        int raw;
-        int voltage;
-        ESP_ERROR_CHECK(adc_oneshot_read(adc, ADC_CHANNEL_3, &raw));
-        ESP_ERROR_CHECK(adc_cali_raw_to_voltage(cali, raw, &voltage));
-        ESP_LOGI(TAG, "raw=%d, v=%4d mV", raw, voltage);
-
-        vTaskDelay(pdMS_TO_TICKS(500));
+  while (1) {
+    if (calibration_handle_input(SAMPLE_PERIOD_MS)) {
+      continue;
     }
-    
+
+    int raw = light_sensor_read();
+
+    if (!calibration_active()) {
+      if (raw < calibration_threshold_dark()) {
+        relay_on = true;
+      } else if (raw > calibration_threshold_light()) {
+        relay_on = false;
+      }
+
+      key_set(relay_on);
+
+      if (relay_on != was_on) {
+        ESP_LOGW(TAG, "relay %s at raw=%d", relay_on ? "ON" : "OFF", raw);
+        was_on = relay_on;
+      }
+    }
+
+    ESP_LOGI(TAG, "state=%s raw=%d, v=%4d mV, dark=%d, light=%d, relay=%s",
+             calibration_state_name(), raw, light_sensor_to_millivolts(raw),
+             calibration_threshold_dark(), calibration_threshold_light(),
+             relay_on ? "ON" : "OFF");
+  }
 }
